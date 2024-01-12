@@ -2,9 +2,9 @@ import { useState } from 'react'
 import Head from 'next/head'
 import Image from 'next/image'
 import { Inter } from 'next/font/google'
-// import styles from '@/styles/Home.module.css'
-
 import styled from 'styled-components';
+
+import { NFTCard } from "../components/nftCard/NftCard"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -57,10 +57,22 @@ const StyledButton = styled.button`
   }
 `;
 
+const StyledDiv = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 3rem;
+  margin-top: 1rem;
+  width: 83.333333%;
+  column-gap: 0.5rem;
+
+`;
+
 export default function Home() {
   const [wallet, setWalletAddress] = useState("");
   const [collection, setCollectionAddress] = useState("");
   const [NFTs, setNFTs] = useState([]);
+  const [fetchForCollection, setFetchForCollection]=useState(false);
 
   const handleWalletAddressInput = (e: React.FormEvent<HTMLInputElement>) => setWalletAddress(e.currentTarget.value);
   const handleCollectionAddressInput = (e: React.FormEvent<HTMLInputElement>)=> setCollectionAddress(e.currentTarget.value);
@@ -69,10 +81,8 @@ export default function Home() {
     let nfts; 
     console.log("fetching nfts");
     const api_key = process.env.API_KEY;
-    const baseURL = `https://polygon-mumbai.g.alchemy.com/v2/${api_key}/getNFTs/`;
-    var requestOptions = {
-        method: 'GET'
-      };
+    const baseURL = `https://polygon-mumbai.g.alchemy.com/nft/v2/${api_key}/getNFTs/`;
+    const requestOptions = { method: 'GET' };
     
     if (!collection.length) {
     
@@ -89,7 +99,23 @@ export default function Home() {
       console.log("nfts:", nfts)
       setNFTs(nfts.ownedNfts)
     }
+  };
+
+  const fetchNFTsForCollection = async () => {
+  if (collection.length) {
+    var requestOptions = {
+      method: 'GET'
+    };
+    const api_key = process.env.API_KEY;
+    const baseURL = `https://polygon-mumbai.g.alchemy.com/v2/${api_key}/getNFTsForCollection/`;
+    const fetchURL = `${baseURL}?contractAddress=${collection}&withMetadata=${"true"}`;
+    const nfts = await fetch(fetchURL, requestOptions).then(data => data.json())
+    if (nfts) {
+      console.log("NFTs in collection:", nfts)
+      setNFTs(nfts.nfts)
+    }
   }
+}
 
   return (
     <>
@@ -110,14 +136,28 @@ export default function Home() {
           ></StyledInput>
 
           <StyledLable>
-            <input type={"checkbox"}></input>
+            <input type={"checkbox"} onChange={(e)=>{setFetchForCollection(e.target.checked)}}></input>
             Fetch for collection
           </StyledLable>
 
           <StyledButton
+            onClick={() => {
+              if (fetchForCollection) {
+                fetchNFTsForCollection()
+              }else fetchNFTs()
+            }}
           >
             Let&apos;s go!
           </StyledButton>
+          <StyledDiv>
+            {
+              NFTs.length && NFTs.map((nft, id) => {
+                return (
+                  <NFTCard key={id} nft={nft}></NFTCard>
+                );
+              })
+            }
+          </StyledDiv>
         </StyledComponent>
       </MainComponent>
     </>
